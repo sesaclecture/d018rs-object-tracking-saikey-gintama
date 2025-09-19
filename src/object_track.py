@@ -5,7 +5,8 @@ import json, os
 import numpy as np
 from functools import partial
 
-CONFIG_FILE = "LAB-cal.json"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_FILE = os.path.join(BASE_DIR, "LAB-cal.json")
 WINDOW_NAME = "LAB Filter"
 TB_L_MIN = "L Min"
 TB_L_MAX = "L Max"
@@ -54,9 +55,9 @@ def load_config(config_path):
             return
         with open(config_path, "r", encoding="utf-8") as f:
             d = json.load(f)
-        l_min, l_max = int(d.get("l_min", l_min)), int(d.get("l_max", l_max))
-        a_min, a_max = int(d.get("a_min", a_min)), int(d.get("a_max", a_max))
-        b_min, b_max = int(d.get("b_min", b_min)), int(d.get("b_max", b_max))
+        l_min, l_max = int(d["l_min"]), int(d["l_max"])
+        a_min, a_max = int(d["a_min"]), int(d["a_max"])
+        b_min, b_max = int(d["b_min"]), int(d["b_max"])
         print("[OK] 저장된 값으로 시작")
     except Exception as e:
         print("[WARN] JSON 로드 실패:", e)
@@ -86,7 +87,7 @@ def update_trackbar_positions():
     cv2.setTrackbarPos(TB_B_MAX, WINDOW_NAME, b_max)
 
 
-def find_biggest_contour(mask, min_area=500): 
+def find_biggest_contour(mask, min_area=1): 
     # TODO: mask 변수 값으로 부터 연결된 객체 중 가장 큰 객체 찾기
     if mask is None or mask.size == 0:
         return None
@@ -112,13 +113,15 @@ def draw_boundingbox(image, contour):
     if contour is None:
         return
     x, y, w, h = cv2.boundingRect(contour)
-    cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 255), 2)
+    cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), -1)
     text = f"(x={x}, y={y}, w={w}, h={h})"
     cv2.putText(image, text, (x, max(0, y - 8)),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
 
 
 if __name__ == "__main__":
+    load_config(CONFIG_FILE)
+    
     # Trackbar UI
     cv2.namedWindow(WINDOW_NAME)
     cv2.resizeWindow(WINDOW_NAME, 800, 200)
@@ -135,6 +138,10 @@ if __name__ == "__main__":
     cv2.createTrackbar(TB_B_MAX, WINDOW_NAME, b_max, 255,
                        partial(update_color_value, color="B", is_min=False))
 
+    update_trackbar_positions()
+    print(f"Loaded config from {CONFIG_FILE}")
+    print(f"L:{l_min}-{l_max}  A:{a_min}-{a_max}  B:{b_min}-{b_max}")
+    
     # Load if config file is given
     if len(sys.argv) > 1:
         load_config(sys.argv[1])
